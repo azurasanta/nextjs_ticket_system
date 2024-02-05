@@ -35,8 +35,18 @@ import FilePondPluginImagePreview from "filepond-plugin-image-preview";
 import "filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css";
 import LoadingOverlay from "../hero/LoadingOverlay";
 
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
 // Register the plugins
 registerPlugin(FilePondPluginImageExifOrientation, FilePondPluginImagePreview);
+
+const schema = z.object({
+  projectId: z.string().min(1),
+  name: z.string().min(1),
+  email: z.string().min(1).email(),
+});
 
 export function CardForm() {
   const [projectId, setProjectId] = useState("");
@@ -45,14 +55,22 @@ export function CardForm() {
   const [description, setDescription] = useState("");
   const [relevance, setRelevance] = useState("");
   const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(false);
 
   const [files, setFiles] = useState<File[]>([]);
 
-  const handleSubmit = async (e: any) => {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(schema),
+  });
+
+  const formAction = async (e: any) => {
     e.preventDefault();
 
-    setLoading(true)
+    setLoading(true);
 
     const formData = new FormData();
 
@@ -75,8 +93,8 @@ export function CardForm() {
       body: formData,
     });
 
-    setLoading(false)
-    
+    setLoading(false);
+
     const { msg } = await res.json();
     setMessage(msg); // Set the message based on the response
 
@@ -123,29 +141,46 @@ export function CardForm() {
                 <div className="flex flex-col space-y-1.5">
                   <Label htmlFor="client">ProjectID</Label>
                   <Input
-                    id="client"
+                    {...register("projectId")}
+                    id="projectId"
+                    type="number"
                     placeholder="ID of your project"
                     onChange={(e) => setProjectId(e.target.value)}
                     value={projectId}
                   />
+                  {errors?.projectId && (
+                    <p className="text-red-600">{errors?.projectId?.message?.toString()}</p>
+                  )}
                 </div>
                 <div className="flex flex-col space-y-1.5">
                   <Label htmlFor="name">Name</Label>
                   <Input
+                    {...register("name")}
                     id="name"
                     placeholder="Name of your project"
                     onChange={(e) => setName(e.target.value)}
                     value={name}
                   />
+                  {errors?.name && (
+                    <p className="text-red-600">
+                      {errors?.name?.message?.toString()}
+                    </p>
+                  )}
                 </div>
                 <div className="flex flex-col space-y-1.5">
                   <Label htmlFor="email">Email of the Recipiant</Label>
                   <Input
-                    id="name"
+                    {...register("email")}
+                    id="email"
                     placeholder="Enter the Email of your recipiant"
                     onChange={(e) => setEmail(e.target.value)}
                     value={email}
                   />
+                  {errors?.email && (
+                    <p className="text-red-600">
+                      {errors?.email?.message?.toString()}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="description">Description</Label>
@@ -157,13 +192,15 @@ export function CardForm() {
                   />
                 </div>
                 <div className="flex flex-col space-y-1.5">
-                  <Label htmlFor="framework">Relevance</Label>
-                  <Select onValueChange={(value) => setRelevance(value)}>
-                    <SelectTrigger id="framework">
+                  <Label htmlFor="relevance">Relevance</Label>
+                  <Select 
+                    onValueChange={(value) => setRelevance(value)}
+                  >
+                    <SelectTrigger>
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
                     <SelectContent position="popper">
-                      <SelectItem value="critical">Critical</SelectItem>
+                      <SelectItem value="critical">critical</SelectItem>
                       <SelectItem value="major">Major</SelectItem>
                       <SelectItem value="high">High</SelectItem>
                       <SelectItem value="medium">Medium</SelectItem>
@@ -172,6 +209,11 @@ export function CardForm() {
                       <SelectItem value="trivial">Trivial</SelectItem>
                     </SelectContent>
                   </Select>
+                  {errors?.relevance && (
+                    <p className="text-red-600">
+                      {errors?.relevance?.message?.toString()}
+                    </p>
+                  )}
                 </div>
               </div>
             </form>
@@ -182,14 +224,17 @@ export function CardForm() {
               allowReorder={true}
               allowMultiple={true}
               onupdatefiles={(fileItems) => {
-                console.log(fileItems);
                 setFiles(fileItems.map((fileItem) => fileItem.file as File));
               }}
               labelIdle='Drag & Drop your files or <span class="filepond--label-action">Browse</span>'
             />
           </CardContent>
           <CardFooter className="flex justify-between">
-            <Button className="w-full" type="submit" onClick={handleSubmit}>
+            <Button
+              className="w-full"
+              type="submit"
+              onClick={handleSubmit(formAction)}
+            >
               Report Issue
             </Button>
           </CardFooter>
